@@ -3,9 +3,11 @@ package com.nequi.franchise.infrastructure.adapter.input.rest;
 import com.nequi.franchise.application.dto.ApiResponse;
 import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
+import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
+import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,14 +23,17 @@ public class FranchiseController {
 
     private final CreateFranchiseUseCase createFranchiseUseCase;
     private final AddBranchToFranchiseUseCase addBranchToFranchiseUseCase;
+    private final AddProductToBranchUseCase addProductToBranchUseCase;
     private final FranchiseResponseMapper franchiseResponseMapper;
 
     public FranchiseController(
             CreateFranchiseUseCase createFranchiseUseCase,
             AddBranchToFranchiseUseCase addBranchToFranchiseUseCase,
+            AddProductToBranchUseCase addProductToBranchUseCase,
             FranchiseResponseMapper franchiseResponseMapper) {
         this.createFranchiseUseCase = createFranchiseUseCase;
         this.addBranchToFranchiseUseCase = addBranchToFranchiseUseCase;
+        this.addProductToBranchUseCase = addProductToBranchUseCase;
         this.franchiseResponseMapper = franchiseResponseMapper;
     }
 
@@ -50,5 +55,17 @@ public class FranchiseController {
         return addBranchToFranchiseUseCase.execute(franchiseId, request.getName())
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.created(response, "Branch added successfully to franchise"));
+    }
+
+    @PostMapping("/{franchiseId}/branches/{branchId}/products")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Add a new product to a branch", description = "Adds a new product to an existing branch")
+    public Mono<ApiResponse<FranchiseResponse>> addProductToBranch(
+            @PathVariable String franchiseId,
+            @PathVariable String branchId,
+            @Valid @RequestBody CreateProductRequest request) {
+        return addProductToBranchUseCase.execute(franchiseId, branchId, request.getName(), request.getStock())
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.created(response, "Product added successfully to branch"));
     }
 }

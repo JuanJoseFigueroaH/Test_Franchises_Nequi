@@ -2,12 +2,16 @@ package com.nequi.franchise.infrastructure.adapter.input.rest;
 
 import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
+import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
+import com.nequi.franchise.domain.exception.BranchNotFoundException;
 import com.nequi.franchise.domain.exception.FranchiseNotFoundException;
 import com.nequi.franchise.domain.model.Branch;
 import com.nequi.franchise.domain.model.Franchise;
+import com.nequi.franchise.domain.model.Product;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
+import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +36,9 @@ class FranchiseControllerTest {
 
     @Mock
     private AddBranchToFranchiseUseCase addBranchToFranchiseUseCase;
+
+    @Mock
+    private AddProductToBranchUseCase addProductToBranchUseCase;
 
     @Mock
     private FranchiseResponseMapper franchiseResponseMapper;
@@ -152,6 +159,94 @@ class FranchiseControllerTest {
                 .verify();
 
         verify(addBranchToFranchiseUseCase, times(1)).execute("non-existent-id", "Test Branch");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void addProductToBranch_ShouldReturnCreatedResponse() {
+        Product product = Product.builder()
+                .id("product-id")
+                .name("Test Product")
+                .stock(100)
+                .build();
+
+        Branch branch = Branch.builder()
+                .id("branch-id")
+                .name("Test Branch")
+                .products(List.of(product))
+                .build();
+
+        Franchise franchiseWithProduct = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(List.of(branch))
+                .build();
+
+        FranchiseResponse responseWithProduct = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>())
+                .build();
+
+        CreateProductRequest productRequest = CreateProductRequest.builder()
+                .name("Test Product")
+                .stock(100)
+                .build();
+
+        when(addProductToBranchUseCase.execute("franchise-id", "branch-id", "Test Product", 100))
+                .thenReturn(Mono.just(franchiseWithProduct));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(responseWithProduct);
+
+        var result = franchiseController.addProductToBranch("franchise-id", "branch-id", productRequest);
+
+        StepVerifier.create(result)
+                .expectNextMatches(response ->
+                        response.getStatusCode().equals(201) &&
+                        response.getMessage().equals("Product added successfully to branch") &&
+                        response.getData().getId().equals("franchise-id"))
+                .verifyComplete();
+
+        verify(addProductToBranchUseCase, times(1)).execute("franchise-id", "branch-id", "Test Product", 100);
+        verify(franchiseResponseMapper, times(1)).toResponse(franchiseWithProduct);
+    }
+
+    @Test
+    void addProductToBranch_ShouldPropagateErrorWhenFranchiseNotFound() {
+        CreateProductRequest productRequest = CreateProductRequest.builder()
+                .name("Test Product")
+                .stock(100)
+                .build();
+
+        when(addProductToBranchUseCase.execute("non-existent-id", "branch-id", "Test Product", 100))
+                .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
+
+        var result = franchiseController.addProductToBranch("non-existent-id", "branch-id", productRequest);
+
+        StepVerifier.create(result)
+                .expectError(FranchiseNotFoundException.class)
+                .verify();
+
+        verify(addProductToBranchUseCase, times(1)).execute("non-existent-id", "branch-id", "Test Product", 100);
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void addProductToBranch_ShouldPropagateErrorWhenBranchNotFound() {
+        CreateProductRequest productRequest = CreateProductRequest.builder()
+                .name("Test Product")
+                .stock(100)
+                .build();
+
+        when(addProductToBranchUseCase.execute("franchise-id", "non-existent-branch", "Test Product", 100))
+                .thenReturn(Mono.error(new BranchNotFoundException("Branch not found")));
+
+        var result = franchiseController.addProductToBranch("franchise-id", "non-existent-branch", productRequest);
+
+        StepVerifier.create(result)
+                .expectError(BranchNotFoundException.class)
+                .verify();
+
+        verify(addProductToBranchUseCase, times(1)).execute("franchise-id", "non-existent-branch", "Test Product", 100);
         verify(franchiseResponseMapper, never()).toResponse(any());
     }
 }
