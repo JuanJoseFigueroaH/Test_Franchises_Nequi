@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: franchise-api
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 60000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+aws:
+  dynamodb:
+    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:8000}
+    region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY:local}
+    secret-key: ${AWS_SECRET_KEY:local}
+    table-name: ${DYNAMODB_TABLE_NAME:franchises}
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.nequi.franchise: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

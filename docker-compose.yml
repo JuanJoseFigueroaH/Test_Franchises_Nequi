@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+    networks:
+      - franchise-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - franchise-network
+
+  franchise-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: franchise-api
+    ports:
+      - "8080:8080"
+    environment:
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY=local
+      - AWS_SECRET_KEY=local
+      - DYNAMODB_TABLE_NAME=franchises
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - franchise-network
+
+networks:
+  franchise-network:
+    driver: bridge
