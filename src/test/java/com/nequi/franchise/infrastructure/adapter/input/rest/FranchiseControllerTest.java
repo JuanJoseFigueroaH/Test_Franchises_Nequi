@@ -7,12 +7,14 @@ import com.nequi.franchise.application.dto.FranchiseResponse;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.exception.BranchNotFoundException;
 import com.nequi.franchise.domain.exception.FranchiseNotFoundException;
+import com.nequi.franchise.domain.exception.ProductNotFoundException;
 import com.nequi.franchise.domain.model.Branch;
 import com.nequi.franchise.domain.model.Franchise;
 import com.nequi.franchise.domain.model.Product;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
+import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +41,9 @@ class FranchiseControllerTest {
 
     @Mock
     private AddProductToBranchUseCase addProductToBranchUseCase;
+
+    @Mock
+    private DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
 
     @Mock
     private FranchiseResponseMapper franchiseResponseMapper;
@@ -247,6 +252,88 @@ class FranchiseControllerTest {
                 .verify();
 
         verify(addProductToBranchUseCase, times(1)).execute("franchise-id", "non-existent-branch", "Test Product", 100);
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void deleteProductFromBranch_ShouldReturnSuccessResponse() {
+        Branch branch = Branch.builder()
+                .id("branch-id")
+                .name("Test Branch")
+                .products(new ArrayList<>())
+                .build();
+
+        Franchise franchiseWithoutProduct = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(List.of(branch))
+                .build();
+
+        FranchiseResponse responseWithoutProduct = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>())
+                .build();
+
+        when(deleteProductFromBranchUseCase.execute("franchise-id", "branch-id", "product-id"))
+                .thenReturn(Mono.just(franchiseWithoutProduct));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(responseWithoutProduct);
+
+        var result = franchiseController.deleteProductFromBranch("franchise-id", "branch-id", "product-id");
+
+        StepVerifier.create(result)
+                .expectNextMatches(response ->
+                        response.getStatusCode().equals(200) &&
+                        response.getMessage().equals("Product deleted successfully from branch") &&
+                        response.getData().getId().equals("franchise-id"))
+                .verifyComplete();
+
+        verify(deleteProductFromBranchUseCase, times(1)).execute("franchise-id", "branch-id", "product-id");
+        verify(franchiseResponseMapper, times(1)).toResponse(franchiseWithoutProduct);
+    }
+
+    @Test
+    void deleteProductFromBranch_ShouldPropagateErrorWhenFranchiseNotFound() {
+        when(deleteProductFromBranchUseCase.execute("non-existent-id", "branch-id", "product-id"))
+                .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
+
+        var result = franchiseController.deleteProductFromBranch("non-existent-id", "branch-id", "product-id");
+
+        StepVerifier.create(result)
+                .expectError(FranchiseNotFoundException.class)
+                .verify();
+
+        verify(deleteProductFromBranchUseCase, times(1)).execute("non-existent-id", "branch-id", "product-id");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void deleteProductFromBranch_ShouldPropagateErrorWhenBranchNotFound() {
+        when(deleteProductFromBranchUseCase.execute("franchise-id", "non-existent-branch", "product-id"))
+                .thenReturn(Mono.error(new BranchNotFoundException("Branch not found")));
+
+        var result = franchiseController.deleteProductFromBranch("franchise-id", "non-existent-branch", "product-id");
+
+        StepVerifier.create(result)
+                .expectError(BranchNotFoundException.class)
+                .verify();
+
+        verify(deleteProductFromBranchUseCase, times(1)).execute("franchise-id", "non-existent-branch", "product-id");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void deleteProductFromBranch_ShouldPropagateErrorWhenProductNotFound() {
+        when(deleteProductFromBranchUseCase.execute("franchise-id", "branch-id", "non-existent-product"))
+                .thenReturn(Mono.error(new ProductNotFoundException("Product not found")));
+
+        var result = franchiseController.deleteProductFromBranch("franchise-id", "branch-id", "non-existent-product");
+
+        StepVerifier.create(result)
+                .expectError(ProductNotFoundException.class)
+                .verify();
+
+        verify(deleteProductFromBranchUseCase, times(1)).execute("franchise-id", "branch-id", "non-existent-product");
         verify(franchiseResponseMapper, never()).toResponse(any());
     }
 }

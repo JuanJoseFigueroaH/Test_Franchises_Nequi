@@ -9,6 +9,7 @@ import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
+import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,16 +25,19 @@ public class FranchiseController {
     private final CreateFranchiseUseCase createFranchiseUseCase;
     private final AddBranchToFranchiseUseCase addBranchToFranchiseUseCase;
     private final AddProductToBranchUseCase addProductToBranchUseCase;
+    private final DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
     private final FranchiseResponseMapper franchiseResponseMapper;
 
     public FranchiseController(
             CreateFranchiseUseCase createFranchiseUseCase,
             AddBranchToFranchiseUseCase addBranchToFranchiseUseCase,
             AddProductToBranchUseCase addProductToBranchUseCase,
+            DeleteProductFromBranchUseCase deleteProductFromBranchUseCase,
             FranchiseResponseMapper franchiseResponseMapper) {
         this.createFranchiseUseCase = createFranchiseUseCase;
         this.addBranchToFranchiseUseCase = addBranchToFranchiseUseCase;
         this.addProductToBranchUseCase = addProductToBranchUseCase;
+        this.deleteProductFromBranchUseCase = deleteProductFromBranchUseCase;
         this.franchiseResponseMapper = franchiseResponseMapper;
     }
 
@@ -67,5 +71,17 @@ public class FranchiseController {
         return addProductToBranchUseCase.execute(franchiseId, branchId, request.getName(), request.getStock())
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.created(response, "Product added successfully to branch"));
+    }
+
+    @DeleteMapping("/{franchiseId}/branches/{branchId}/products/{productId}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Delete a product from a branch", description = "Removes a product from an existing branch")
+    public Mono<ApiResponse<FranchiseResponse>> deleteProductFromBranch(
+            @PathVariable String franchiseId,
+            @PathVariable String branchId,
+            @PathVariable String productId) {
+        return deleteProductFromBranchUseCase.execute(franchiseId, branchId, productId)
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.success(response, "Product deleted successfully from branch"));
     }
 }
