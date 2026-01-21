@@ -31,9 +31,11 @@ public class AddBranchToFranchiseService implements AddBranchToFranchiseUseCase 
 
     @Override
     public Mono<Franchise> execute(String franchiseId, String branchName) {
-        logger.info("Adding branch '{}' to franchise with id: {}", branchName, franchiseId);
+        logger.info("Adding branch '{}' to franchise '{}'", branchName, franchiseId);
 
-        return franchiseRepository.findById(franchiseId)
+        return cachePort.delete("franchise:" + franchiseId)
+                .doOnSuccess(deleted -> logger.debug("Cache invalidated for franchise: {}", franchiseId))
+                .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
                     Branch newBranch = Branch.builder()
@@ -47,6 +49,9 @@ public class AddBranchToFranchiseService implements AddBranchToFranchiseUseCase 
                 })
                 .flatMap(updatedFranchise ->
                         cachePort.set("franchise:" + updatedFranchise.getId(), updatedFranchise, CACHE_TTL)
+                                .doOnSuccess(cached -> logger.debug("Franchise re-cached after branch addition"))
+                                .doOnError(error -> logger.warn("Failed to cache franchise: {}", error.getMessage()))
+                                .onErrorReturn(false)
                                 .thenReturn(updatedFranchise))
                 .doOnSuccess(franchise -> logger.info("Branch added successfully to franchise: {}", franchiseId))
                 .doOnError(error -> logger.error("Error adding branch to franchise: {}", error.getMessage()));

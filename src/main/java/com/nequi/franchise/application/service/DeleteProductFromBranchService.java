@@ -33,7 +33,9 @@ public class DeleteProductFromBranchService implements DeleteProductFromBranchUs
     public Mono<Franchise> execute(String franchiseId, String branchId, String productId) {
         logger.info("Deleting product '{}' from branch '{}' in franchise '{}'", productId, branchId, franchiseId);
 
-        return franchiseRepository.findById(franchiseId)
+        return cachePort.delete("franchise:" + franchiseId)
+                .doOnSuccess(deleted -> logger.debug("Cache invalidated for franchise: {}", franchiseId))
+                .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
                     Branch branch = franchise.getBranches().stream()
@@ -41,18 +43,20 @@ public class DeleteProductFromBranchService implements DeleteProductFromBranchUs
                             .findFirst()
                             .orElseThrow(() -> new BranchNotFoundException("Branch not found with id: " + branchId));
 
-                    boolean removed = branch.getProducts().removeIf(product -> product.getId().equals(productId));
-                    
-                    if (!removed) {
-                        return Mono.error(new ProductNotFoundException("Product not found with id: " + productId));
+                    boolean productRemoved = branch.getProducts().removeIf(p -> p.getId().equals(productId));
+                    if (!productRemoved) {
+                        throw new ProductNotFoundException("Product not found with id: " + productId);
                     }
 
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->
                         cachePort.set("franchise:" + updatedFranchise.getId(), updatedFranchise, CACHE_TTL)
+                                .doOnSuccess(cached -> logger.debug("Franchise re-cached after product deletion"))
+                                .doOnError(error -> logger.warn("Failed to cache franchise: {}", error.getMessage()))
+                                .onErrorReturn(false)
                                 .thenReturn(updatedFranchise))
-                .doOnSuccess(franchise -> logger.info("Product '{}' deleted successfully from branch '{}' in franchise '{}'", productId, branchId, franchiseId))
+                .doOnSuccess(franchise -> logger.info("Product deleted successfully from branch: {}", branchId))
                 .doOnError(error -> logger.error("Error deleting product from branch: {}", error.getMessage()));
     }
 }

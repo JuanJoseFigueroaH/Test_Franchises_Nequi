@@ -32,9 +32,11 @@ public class AddProductToBranchService implements AddProductToBranchUseCase {
 
     @Override
     public Mono<Franchise> execute(String franchiseId, String branchId, String productName, Integer stock) {
-        logger.info("Adding product '{}' to branch '{}' in franchise '{}'", productName, branchId, franchiseId);
+        logger.info("Adding product '{}' with stock {} to branch '{}' in franchise '{}'", productName, stock, branchId, franchiseId);
 
-        return franchiseRepository.findById(franchiseId)
+        return cachePort.delete("franchise:" + franchiseId)
+                .doOnSuccess(deleted -> logger.debug("Cache invalidated for franchise: {}", franchiseId))
+                .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
                     Branch branch = franchise.getBranches().stream()
@@ -53,8 +55,11 @@ public class AddProductToBranchService implements AddProductToBranchUseCase {
                 })
                 .flatMap(updatedFranchise ->
                         cachePort.set("franchise:" + updatedFranchise.getId(), updatedFranchise, CACHE_TTL)
+                                .doOnSuccess(cached -> logger.debug("Franchise re-cached after product addition"))
+                                .doOnError(error -> logger.warn("Failed to cache franchise: {}", error.getMessage()))
+                                .onErrorReturn(false)
                                 .thenReturn(updatedFranchise))
-                .doOnSuccess(franchise -> logger.info("Product added successfully to branch '{}' in franchise '{}'", branchId, franchiseId))
+                .doOnSuccess(franchise -> logger.info("Product added successfully to branch: {}", branchId))
                 .doOnError(error -> logger.error("Error adding product to branch: {}", error.getMessage()));
     }
 }

@@ -37,4 +37,12 @@ public class RedisCacheAdapter implements CachePort {
                 .map(count -> count > 0)
                 .onErrorReturn(false);
     }
+
+    @Override
+    public Mono<Long> deleteByPattern(String pattern) {
+        return redisTemplate.keys(pattern)
+                .flatMap(redisTemplate::delete)
+                .reduce(0L, Long::sum)
+                .onErrorReturn(0L);
+    }
 }

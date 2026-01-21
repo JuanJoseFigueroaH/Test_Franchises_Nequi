@@ -30,7 +30,9 @@ public class UpdateFranchiseNameService implements UpdateFranchiseNameUseCase {
     public Mono<Franchise> execute(String franchiseId, String newName) {
         logger.info("Updating name of franchise '{}' to '{}'", franchiseId, newName);
 
-        return franchiseRepository.findById(franchiseId)
+        return cachePort.delete("franchise:" + franchiseId)
+                .doOnSuccess(deleted -> logger.debug("Cache invalidated for franchise: {}", franchiseId))
+                .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
                     franchise.setName(newName);
@@ -38,6 +40,9 @@ public class UpdateFranchiseNameService implements UpdateFranchiseNameUseCase {
                 })
                 .flatMap(updatedFranchise ->
                         cachePort.set("franchise:" + updatedFranchise.getId(), updatedFranchise, CACHE_TTL)
+                                .doOnSuccess(cached -> logger.debug("Franchise re-cached after name update"))
+                                .doOnError(error -> logger.warn("Failed to cache franchise: {}", error.getMessage()))
+                                .onErrorReturn(false)
                                 .thenReturn(updatedFranchise))
                 .doOnSuccess(franchise -> logger.info("Franchise name updated successfully: {}", franchiseId))
                 .doOnError(error -> logger.error("Error updating franchise name: {}", error.getMessage()));

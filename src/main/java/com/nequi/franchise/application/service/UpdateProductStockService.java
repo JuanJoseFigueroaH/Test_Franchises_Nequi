@@ -34,7 +34,9 @@ public class UpdateProductStockService implements UpdateProductStockUseCase {
     public Mono<Franchise> execute(String franchiseId, String branchId, String productId, Integer newStock) {
         logger.info("Updating stock of product '{}' in branch '{}' of franchise '{}' to {}", productId, branchId, franchiseId, newStock);
 
-        return franchiseRepository.findById(franchiseId)
+        return cachePort.delete("franchise:" + franchiseId)
+                .doOnSuccess(deleted -> logger.debug("Cache invalidated for franchise: {}", franchiseId))
+                .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
                     Branch branch = franchise.getBranches().stream()
@@ -52,8 +54,11 @@ public class UpdateProductStockService implements UpdateProductStockUseCase {
                 })
                 .flatMap(updatedFranchise ->
                         cachePort.set("franchise:" + updatedFranchise.getId(), updatedFranchise, CACHE_TTL)
+                                .doOnSuccess(cached -> logger.debug("Franchise re-cached after stock update"))
+                                .doOnError(error -> logger.warn("Failed to cache franchise: {}", error.getMessage()))
+                                .onErrorReturn(false)
                                 .thenReturn(updatedFranchise))
-                .doOnSuccess(franchise -> logger.info("Stock updated successfully for product '{}' in branch '{}' of franchise '{}'", productId, branchId, franchiseId))
+                .doOnSuccess(franchise -> logger.info("Product stock updated successfully: {}", productId))
                 .doOnError(error -> logger.error("Error updating product stock: {}", error.getMessage()));
     }
 }

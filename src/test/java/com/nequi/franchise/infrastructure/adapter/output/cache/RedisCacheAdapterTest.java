@@ -122,4 +122,46 @@ class RedisCacheAdapterTest {
 
         verify(redisTemplate, times(1)).delete("test-key");
     }
+
+    @Test
+    void deleteByPattern_ShouldReturnCountOfDeletedKeys() {
+        when(redisTemplate.keys(anyString())).thenReturn(reactor.core.publisher.Flux.just("key1", "key2", "key3"));
+        when(redisTemplate.delete(anyString())).thenReturn(Mono.just(1L));
+
+        var result = cacheAdapter.deleteByPattern("franchise:*");
+
+        StepVerifier.create(result)
+                .expectNext(3L)
+                .verifyComplete();
+
+        verify(redisTemplate, times(1)).keys("franchise:*");
+        verify(redisTemplate, times(3)).delete(anyString());
+    }
+
+    @Test
+    void deleteByPattern_ShouldReturnZeroWhenNoKeysFound() {
+        when(redisTemplate.keys(anyString())).thenReturn(reactor.core.publisher.Flux.empty());
+
+        var result = cacheAdapter.deleteByPattern("franchise:*");
+
+        StepVerifier.create(result)
+                .expectNext(0L)
+                .verifyComplete();
+
+        verify(redisTemplate, times(1)).keys("franchise:*");
+        verify(redisTemplate, never()).delete(anyString());
+    }
+
+    @Test
+    void deleteByPattern_ShouldReturnZeroOnError() {
+        when(redisTemplate.keys(anyString())).thenReturn(reactor.core.publisher.Flux.error(new RuntimeException("Redis error")));
+
+        var result = cacheAdapter.deleteByPattern("franchise:*");
+
+        StepVerifier.create(result)
+                .expectNext(0L)
+                .verifyComplete();
+
+        verify(redisTemplate, times(1)).keys("franchise:*");
+    }
 }

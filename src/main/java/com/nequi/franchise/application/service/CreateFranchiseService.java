@@ -39,6 +39,9 @@ public class CreateFranchiseService implements CreateFranchiseUseCase {
                 .flatMap(franchiseRepository::save)
                 .flatMap(savedFranchise -> 
                     cachePort.set("franchise:" + savedFranchise.getId(), savedFranchise, CACHE_TTL)
+                            .doOnSuccess(cached -> logger.debug("Franchise cached with key: franchise:{}", savedFranchise.getId()))
+                            .doOnError(error -> logger.warn("Failed to cache franchise: {}", error.getMessage()))
+                            .onErrorReturn(false)
                             .thenReturn(savedFranchise))
                 .doOnSuccess(franchise -> logger.info("Franchise created successfully with id: {}", franchise.getId()))
                 .doOnError(error -> logger.error("Error creating franchise: {}", error.getMessage()));
