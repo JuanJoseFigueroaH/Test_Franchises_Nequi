@@ -40,6 +40,7 @@ public class DeleteProductFromBranchService implements DeleteProductFromBranchUs
                 .flatMap(franchise -> {
                     Branch branch = franchise.findBranch(branchId);
                     branch.removeProduct(productId);
+                    franchise.incrementVersion();
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

@@ -42,6 +42,7 @@ public class UpdateProductStockService implements UpdateProductStockUseCase {
                     Branch branch = franchise.findBranch(branchId);
                     Product product = branch.findProduct(productId);
                     product.updateStock(newStock);
+                    franchise.incrementVersion();
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

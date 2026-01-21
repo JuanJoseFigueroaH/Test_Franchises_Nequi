@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbVersionAttribute;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ public class FranchiseEntity {
     private String name;
     @Builder.Default
     private List<BranchEntity> branches = new ArrayList<>();
+    private Long version;
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("id")
@@ -37,5 +39,10 @@ public class FranchiseEntity {
     @DynamoDbAttribute("branches")
     public List<BranchEntity> getBranches() {
         return branches;
+    }
+
+    @DynamoDbVersionAttribute
+    public Long getVersion() {
+        return version;
     }
 }

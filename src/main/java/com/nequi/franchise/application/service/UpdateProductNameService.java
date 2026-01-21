@@ -42,6 +42,7 @@ public class UpdateProductNameService implements UpdateProductNameUseCase {
                     Branch branch = franchise.findBranch(branchId);
                     Product product = branch.findProduct(productId);
                     product.updateName(newName);
+                    franchise.incrementVersion();
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

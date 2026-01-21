@@ -5,6 +5,7 @@ import com.nequi.franchise.domain.exception.BranchNotFoundException;
 import com.nequi.franchise.domain.exception.DuplicateEntityException;
 import com.nequi.franchise.domain.exception.FranchiseNotFoundException;
 import com.nequi.franchise.domain.exception.InvalidDomainException;
+import com.nequi.franchise.domain.exception.OptimisticLockException;
 import com.nequi.franchise.domain.exception.ProductNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,15 @@ public class GlobalExceptionHandler {
         return Mono.just(ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage())));
+    }
+
+    @ExceptionHandler(OptimisticLockException.class)
+    public Mono<ResponseEntity<ApiResponse<Void>>> handleOptimisticLockException(OptimisticLockException ex) {
+        logger.warn("Optimistic lock error: {}", ex.getMessage());
+        return Mono.just(ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(HttpStatus.CONFLICT.value(), 
+                    "The resource was modified by another request. Please retry your operation.")));
     }
 
     @ExceptionHandler(WebExchangeBindException.class)

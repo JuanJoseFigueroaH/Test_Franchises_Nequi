@@ -48,6 +48,7 @@ public class AddProductToBranchService implements AddProductToBranchUseCase {
                             .build();
 
                     branch.addProduct(newProduct);
+                    franchise.incrementVersion();
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

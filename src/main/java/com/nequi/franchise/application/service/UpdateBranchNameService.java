@@ -39,6 +39,7 @@ public class UpdateBranchNameService implements UpdateBranchNameUseCase {
                 .flatMap(franchise -> {
                     Branch branch = franchise.findBranch(branchId);
                     branch.updateName(newName);
+                    franchise.incrementVersion();
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

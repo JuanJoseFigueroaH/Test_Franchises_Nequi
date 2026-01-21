@@ -44,6 +44,7 @@ public class AddBranchToFranchiseService implements AddBranchToFranchiseUseCase 
                             .build();
 
                     franchise.addBranch(newBranch);
+                    franchise.incrementVersion();
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

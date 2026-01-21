@@ -32,6 +32,8 @@ public class Franchise {
     
     @Builder.Default
     private List<Branch> branches = new ArrayList<>();
+    
+    private Long version;
 
     public void updateName(String newName) {
         validateName(newName);
@@ -133,12 +135,19 @@ public class Franchise {
         }
     }
 
+    public void incrementVersion() {
+        this.version = (this.version == null) ? 1L : this.version + 1;
+    }
+
     public static class FranchiseBuilder {
         public Franchise build() {
             if (branches == null) {
                 branches = new ArrayList<>();
             }
-            Franchise franchise = new Franchise(id, name, branches);
+            if (version == null) {
+                version = 0L;
+            }
+            Franchise franchise = new Franchise(id, name, branches, version);
             franchise.validateName(name);
             return franchise;
         }
