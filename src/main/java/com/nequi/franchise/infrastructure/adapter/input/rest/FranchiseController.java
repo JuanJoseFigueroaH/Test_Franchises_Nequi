@@ -5,11 +5,13 @@ import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
 import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
+import com.nequi.franchise.application.dto.UpdateStockRequest;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
+import com.nequi.franchise.domain.port.input.UpdateProductStockUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,6 +28,7 @@ public class FranchiseController {
     private final AddBranchToFranchiseUseCase addBranchToFranchiseUseCase;
     private final AddProductToBranchUseCase addProductToBranchUseCase;
     private final DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
+    private final UpdateProductStockUseCase updateProductStockUseCase;
     private final FranchiseResponseMapper franchiseResponseMapper;
 
     public FranchiseController(
@@ -33,11 +36,13 @@ public class FranchiseController {
             AddBranchToFranchiseUseCase addBranchToFranchiseUseCase,
             AddProductToBranchUseCase addProductToBranchUseCase,
             DeleteProductFromBranchUseCase deleteProductFromBranchUseCase,
+            UpdateProductStockUseCase updateProductStockUseCase,
             FranchiseResponseMapper franchiseResponseMapper) {
         this.createFranchiseUseCase = createFranchiseUseCase;
         this.addBranchToFranchiseUseCase = addBranchToFranchiseUseCase;
         this.addProductToBranchUseCase = addProductToBranchUseCase;
         this.deleteProductFromBranchUseCase = deleteProductFromBranchUseCase;
+        this.updateProductStockUseCase = updateProductStockUseCase;
         this.franchiseResponseMapper = franchiseResponseMapper;
     }
 
@@ -83,5 +88,18 @@ public class FranchiseController {
         return deleteProductFromBranchUseCase.execute(franchiseId, branchId, productId)
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.success(response, "Product deleted successfully from branch"));
+    }
+
+    @PatchMapping("/{franchiseId}/branches/{branchId}/products/{productId}/stock")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Update product stock", description = "Updates the stock quantity of a product in a branch")
+    public Mono<ApiResponse<FranchiseResponse>> updateProductStock(
+            @PathVariable String franchiseId,
+            @PathVariable String branchId,
+            @PathVariable String productId,
+            @Valid @RequestBody UpdateStockRequest request) {
+        return updateProductStockUseCase.execute(franchiseId, branchId, productId, request.getStock())
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.success(response, "Product stock updated successfully"));
     }
 }

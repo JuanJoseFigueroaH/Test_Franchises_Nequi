@@ -4,6 +4,7 @@ import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
 import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
+import com.nequi.franchise.application.dto.UpdateStockRequest;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.exception.BranchNotFoundException;
 import com.nequi.franchise.domain.exception.FranchiseNotFoundException;
@@ -15,6 +16,7 @@ import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
+import com.nequi.franchise.domain.port.input.UpdateProductStockUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +46,9 @@ class FranchiseControllerTest {
 
     @Mock
     private DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
+
+    @Mock
+    private UpdateProductStockUseCase updateProductStockUseCase;
 
     @Mock
     private FranchiseResponseMapper franchiseResponseMapper;
@@ -334,6 +339,110 @@ class FranchiseControllerTest {
                 .verify();
 
         verify(deleteProductFromBranchUseCase, times(1)).execute("franchise-id", "branch-id", "non-existent-product");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void updateProductStock_ShouldReturnSuccessResponse() {
+        Product product = Product.builder()
+                .id("product-id")
+                .name("Test Product")
+                .stock(200)
+                .build();
+
+        Branch branch = Branch.builder()
+                .id("branch-id")
+                .name("Test Branch")
+                .products(List.of(product))
+                .build();
+
+        Franchise franchiseWithUpdatedStock = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(List.of(branch))
+                .build();
+
+        FranchiseResponse responseWithUpdatedStock = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>())
+                .build();
+
+        UpdateStockRequest stockRequest = UpdateStockRequest.builder()
+                .stock(200)
+                .build();
+
+        when(updateProductStockUseCase.execute("franchise-id", "branch-id", "product-id", 200))
+                .thenReturn(Mono.just(franchiseWithUpdatedStock));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(responseWithUpdatedStock);
+
+        var result = franchiseController.updateProductStock("franchise-id", "branch-id", "product-id", stockRequest);
+
+        StepVerifier.create(result)
+                .expectNextMatches(response ->
+                        response.getStatusCode().equals(200) &&
+                        response.getMessage().equals("Product stock updated successfully") &&
+                        response.getData().getId().equals("franchise-id"))
+                .verifyComplete();
+
+        verify(updateProductStockUseCase, times(1)).execute("franchise-id", "branch-id", "product-id", 200);
+        verify(franchiseResponseMapper, times(1)).toResponse(franchiseWithUpdatedStock);
+    }
+
+    @Test
+    void updateProductStock_ShouldPropagateErrorWhenFranchiseNotFound() {
+        UpdateStockRequest stockRequest = UpdateStockRequest.builder()
+                .stock(200)
+                .build();
+
+        when(updateProductStockUseCase.execute("non-existent-id", "branch-id", "product-id", 200))
+                .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
+
+        var result = franchiseController.updateProductStock("non-existent-id", "branch-id", "product-id", stockRequest);
+
+        StepVerifier.create(result)
+                .expectError(FranchiseNotFoundException.class)
+                .verify();
+
+        verify(updateProductStockUseCase, times(1)).execute("non-existent-id", "branch-id", "product-id", 200);
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void updateProductStock_ShouldPropagateErrorWhenBranchNotFound() {
+        UpdateStockRequest stockRequest = UpdateStockRequest.builder()
+                .stock(200)
+                .build();
+
+        when(updateProductStockUseCase.execute("franchise-id", "non-existent-branch", "product-id", 200))
+                .thenReturn(Mono.error(new BranchNotFoundException("Branch not found")));
+
+        var result = franchiseController.updateProductStock("franchise-id", "non-existent-branch", "product-id", stockRequest);
+
+        StepVerifier.create(result)
+                .expectError(BranchNotFoundException.class)
+                .verify();
+
+        verify(updateProductStockUseCase, times(1)).execute("franchise-id", "non-existent-branch", "product-id", 200);
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void updateProductStock_ShouldPropagateErrorWhenProductNotFound() {
+        UpdateStockRequest stockRequest = UpdateStockRequest.builder()
+                .stock(200)
+                .build();
+
+        when(updateProductStockUseCase.execute("franchise-id", "branch-id", "non-existent-product", 200))
+                .thenReturn(Mono.error(new ProductNotFoundException("Product not found")));
+
+        var result = franchiseController.updateProductStock("franchise-id", "branch-id", "non-existent-product", stockRequest);
+
+        StepVerifier.create(result)
+                .expectError(ProductNotFoundException.class)
+                .verify();
+
+        verify(updateProductStockUseCase, times(1)).execute("franchise-id", "branch-id", "non-existent-product", 200);
         verify(franchiseResponseMapper, never()).toResponse(any());
     }
 }
