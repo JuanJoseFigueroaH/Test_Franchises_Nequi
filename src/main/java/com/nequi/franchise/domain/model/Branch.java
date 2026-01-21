@@ -49,6 +49,9 @@ public class Branch {
         if (hasProduct(product.getId())) {
             throw new DuplicateEntityException("Product with id " + product.getId() + " already exists in this branch");
         }
+        if (hasProductWithName(product.getName())) {
+            throw new DuplicateEntityException("Product with name '" + product.getName() + "' already exists in this branch");
+        }
         this.products.add(product);
     }
 
@@ -95,6 +98,14 @@ public class Branch {
         }
         return this.products.stream()
                 .anyMatch(p -> p.getId().equals(productId));
+    }
+
+    public boolean hasProductWithName(String productName) {
+        if (productName == null || productName.trim().isEmpty()) {
+            return false;
+        }
+        return this.products.stream()
+                .anyMatch(p -> p.getName().equalsIgnoreCase(productName.trim()));
     }
 
     private void validateName(String name) {

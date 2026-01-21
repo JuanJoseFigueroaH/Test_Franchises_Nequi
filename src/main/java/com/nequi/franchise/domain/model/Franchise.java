@@ -50,6 +50,9 @@ public class Franchise {
         if (hasBranch(branch.getId())) {
             throw new DuplicateEntityException("Branch with id " + branch.getId() + " already exists in this franchise");
         }
+        if (hasBranchWithName(branch.getName())) {
+            throw new DuplicateEntityException("Branch with name '" + branch.getName() + "' already exists in this franchise");
+        }
         this.branches.add(branch);
     }
 
@@ -91,6 +94,14 @@ public class Franchise {
         }
         return this.branches.stream()
                 .anyMatch(b -> b.getId().equals(branchId));
+    }
+
+    public boolean hasBranchWithName(String branchName) {
+        if (branchName == null || branchName.trim().isEmpty()) {
+            return false;
+        }
+        return this.branches.stream()
+                .anyMatch(b -> b.getName().equalsIgnoreCase(branchName.trim()));
     }
 
     public int getTotalProductCount() {
