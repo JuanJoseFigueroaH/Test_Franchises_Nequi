@@ -39,10 +39,7 @@ public class AddProductToBranchService implements AddProductToBranchUseCase {
                 .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
-                    Branch branch = franchise.getBranches().stream()
-                            .filter(b -> b.getId().equals(branchId))
-                            .findFirst()
-                            .orElseThrow(() -> new BranchNotFoundException("Branch not found with id: " + branchId));
+                    Branch branch = franchise.findBranch(branchId);
 
                     Product newProduct = Product.builder()
                             .id(UUID.randomUUID().toString())
@@ -50,7 +47,7 @@ public class AddProductToBranchService implements AddProductToBranchUseCase {
                             .stock(stock)
                             .build();
 
-                    branch.getProducts().add(newProduct);
+                    branch.addProduct(newProduct);
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

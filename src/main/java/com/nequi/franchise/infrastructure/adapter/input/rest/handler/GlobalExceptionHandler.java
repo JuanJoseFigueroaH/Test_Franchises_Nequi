@@ -4,6 +4,7 @@ import com.nequi.franchise.application.dto.ApiResponse;
 import com.nequi.franchise.domain.exception.BranchNotFoundException;
 import com.nequi.franchise.domain.exception.DuplicateEntityException;
 import com.nequi.franchise.domain.exception.FranchiseNotFoundException;
+import com.nequi.franchise.domain.exception.InvalidDomainException;
 import com.nequi.franchise.domain.exception.ProductNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +44,19 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DuplicateEntityException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDuplicateEntity(DuplicateEntityException ex) {
-        logger.error("Duplicate entity: {}", ex.getMessage());
-        return ResponseEntity
+    public Mono<ResponseEntity<ApiResponse<Void>>> handleDuplicateEntityException(DuplicateEntityException ex) {
+        logger.warn("Duplicate entity error: {}", ex.getMessage());
+        return Mono.just(ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(409, ex.getMessage()));
+                .body(ApiResponse.error(HttpStatus.CONFLICT.value(), ex.getMessage())));
+    }
+
+    @ExceptionHandler(InvalidDomainException.class)
+    public Mono<ResponseEntity<ApiResponse<Void>>> handleInvalidDomainException(InvalidDomainException ex) {
+        logger.warn("Invalid domain error: {}", ex.getMessage());
+        return Mono.just(ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage())));
     }
 
     @ExceptionHandler(WebExchangeBindException.class)

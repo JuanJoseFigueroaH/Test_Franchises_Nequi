@@ -38,16 +38,8 @@ public class DeleteProductFromBranchService implements DeleteProductFromBranchUs
                 .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
-                    Branch branch = franchise.getBranches().stream()
-                            .filter(b -> b.getId().equals(branchId))
-                            .findFirst()
-                            .orElseThrow(() -> new BranchNotFoundException("Branch not found with id: " + branchId));
-
-                    boolean productRemoved = branch.getProducts().removeIf(p -> p.getId().equals(productId));
-                    if (!productRemoved) {
-                        throw new ProductNotFoundException("Product not found with id: " + productId);
-                    }
-
+                    Branch branch = franchise.findBranch(branchId);
+                    branch.removeProduct(productId);
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

@@ -35,7 +35,7 @@ public class UpdateFranchiseNameService implements UpdateFranchiseNameUseCase {
                 .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
-                    franchise.setName(newName);
+                    franchise.updateName(newName);
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

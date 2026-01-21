@@ -41,10 +41,9 @@ public class AddBranchToFranchiseService implements AddBranchToFranchiseUseCase 
                     Branch newBranch = Branch.builder()
                             .id(UUID.randomUUID().toString())
                             .name(branchName)
-                            .products(new ArrayList<>())
                             .build();
 
-                    franchise.getBranches().add(newBranch);
+                    franchise.addBranch(newBranch);
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

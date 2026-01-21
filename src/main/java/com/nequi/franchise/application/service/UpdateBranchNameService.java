@@ -37,12 +37,8 @@ public class UpdateBranchNameService implements UpdateBranchNameUseCase {
                 .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
-                    Branch branch = franchise.getBranches().stream()
-                            .filter(b -> b.getId().equals(branchId))
-                            .findFirst()
-                            .orElseThrow(() -> new BranchNotFoundException("Branch not found with id: " + branchId));
-
-                    branch.setName(newName);
+                    Branch branch = franchise.findBranch(branchId);
+                    branch.updateName(newName);
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->

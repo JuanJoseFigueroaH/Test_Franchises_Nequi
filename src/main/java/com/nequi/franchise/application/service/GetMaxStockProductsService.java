@@ -51,31 +51,6 @@ public class GetMaxStockProductsService implements GetMaxStockProductsUseCase {
     }
 
     private Franchise filterMaxStockProducts(Franchise franchise) {
-        List<Branch> filteredBranches = new ArrayList<>();
-
-        for (Branch branch : franchise.getBranches()) {
-            if (branch.getProducts().isEmpty()) {
-                continue;
-            }
-
-            Product maxStockProduct = branch.getProducts().stream()
-                    .max(Comparator.comparing(Product::getStock))
-                    .orElse(null);
-
-            if (maxStockProduct != null) {
-                Branch filteredBranch = Branch.builder()
-                        .id(branch.getId())
-                        .name(branch.getName())
-                        .products(List.of(maxStockProduct))
-                        .build();
-                filteredBranches.add(filteredBranch);
-            }
-        }
-
-        return Franchise.builder()
-                .id(franchise.getId())
-                .name(franchise.getName())
-                .branches(filteredBranches)
-                .build();
+        return franchise.getMaxStockProductsPerBranch();
     }
 }

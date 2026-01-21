@@ -39,17 +39,9 @@ public class UpdateProductStockService implements UpdateProductStockUseCase {
                 .then(franchiseRepository.findById(franchiseId))
                 .switchIfEmpty(Mono.error(new FranchiseNotFoundException("Franchise not found with id: " + franchiseId)))
                 .flatMap(franchise -> {
-                    Branch branch = franchise.getBranches().stream()
-                            .filter(b -> b.getId().equals(branchId))
-                            .findFirst()
-                            .orElseThrow(() -> new BranchNotFoundException("Branch not found with id: " + branchId));
-
-                    Product product = branch.getProducts().stream()
-                            .filter(p -> p.getId().equals(productId))
-                            .findFirst()
-                            .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + productId));
-
-                    product.setStock(newStock);
+                    Branch branch = franchise.findBranch(branchId);
+                    Product product = branch.findProduct(productId);
+                    product.updateStock(newStock);
                     return franchiseRepository.save(franchise);
                 })
                 .flatMap(updatedFranchise ->
