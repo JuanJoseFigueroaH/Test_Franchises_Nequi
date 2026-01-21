@@ -4,6 +4,7 @@ import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
 import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
+import com.nequi.franchise.application.dto.UpdateNameRequest;
 import com.nequi.franchise.application.dto.UpdateStockRequest;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.exception.BranchNotFoundException;
@@ -17,6 +18,9 @@ import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
 import com.nequi.franchise.domain.port.input.GetMaxStockProductsUseCase;
+import com.nequi.franchise.domain.port.input.UpdateBranchNameUseCase;
+import com.nequi.franchise.domain.port.input.UpdateFranchiseNameUseCase;
+import com.nequi.franchise.domain.port.input.UpdateProductNameUseCase;
 import com.nequi.franchise.domain.port.input.UpdateProductStockUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +57,15 @@ class FranchiseControllerTest {
 
     @Mock
     private GetMaxStockProductsUseCase getMaxStockProductsUseCase;
+
+    @Mock
+    private UpdateFranchiseNameUseCase updateFranchiseNameUseCase;
+
+    @Mock
+    private UpdateBranchNameUseCase updateBranchNameUseCase;
+
+    @Mock
+    private UpdateProductNameUseCase updateProductNameUseCase;
 
     @Mock
     private FranchiseResponseMapper franchiseResponseMapper;
@@ -517,6 +530,186 @@ class FranchiseControllerTest {
                 .verify();
 
         verify(getMaxStockProductsUseCase, times(1)).execute("non-existent-id");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void updateFranchiseName_ShouldReturnSuccessResponse() {
+        Franchise updatedFranchise = Franchise.builder()
+                .id("franchise-id")
+                .name("Updated Franchise Name")
+                .branches(new ArrayList<>())
+                .build();
+
+        FranchiseResponse response = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Updated Franchise Name")
+                .branches(new ArrayList<>())
+                .build();
+
+        UpdateNameRequest nameRequest = UpdateNameRequest.builder()
+                .name("Updated Franchise Name")
+                .build();
+
+        when(updateFranchiseNameUseCase.execute("franchise-id", "Updated Franchise Name"))
+                .thenReturn(Mono.just(updatedFranchise));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(response);
+
+        var result = franchiseController.updateFranchiseName("franchise-id", nameRequest);
+
+        StepVerifier.create(result)
+                .expectNextMatches(r ->
+                        r.getStatusCode().equals(200) &&
+                        r.getMessage().equals("Franchise name updated successfully") &&
+                        r.getData().getName().equals("Updated Franchise Name"))
+                .verifyComplete();
+
+        verify(updateFranchiseNameUseCase, times(1)).execute("franchise-id", "Updated Franchise Name");
+        verify(franchiseResponseMapper, times(1)).toResponse(updatedFranchise);
+    }
+
+    @Test
+    void updateFranchiseName_ShouldPropagateErrorWhenFranchiseNotFound() {
+        UpdateNameRequest nameRequest = UpdateNameRequest.builder()
+                .name("New Name")
+                .build();
+
+        when(updateFranchiseNameUseCase.execute("non-existent-id", "New Name"))
+                .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
+
+        var result = franchiseController.updateFranchiseName("non-existent-id", nameRequest);
+
+        StepVerifier.create(result)
+                .expectError(FranchiseNotFoundException.class)
+                .verify();
+
+        verify(updateFranchiseNameUseCase, times(1)).execute("non-existent-id", "New Name");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void updateBranchName_ShouldReturnSuccessResponse() {
+        Branch updatedBranch = Branch.builder()
+                .id("branch-id")
+                .name("Updated Branch Name")
+                .products(new ArrayList<>())
+                .build();
+
+        Franchise updatedFranchise = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(List.of(updatedBranch))
+                .build();
+
+        FranchiseResponse response = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>())
+                .build();
+
+        UpdateNameRequest nameRequest = UpdateNameRequest.builder()
+                .name("Updated Branch Name")
+                .build();
+
+        when(updateBranchNameUseCase.execute("franchise-id", "branch-id", "Updated Branch Name"))
+                .thenReturn(Mono.just(updatedFranchise));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(response);
+
+        var result = franchiseController.updateBranchName("franchise-id", "branch-id", nameRequest);
+
+        StepVerifier.create(result)
+                .expectNextMatches(r ->
+                        r.getStatusCode().equals(200) &&
+                        r.getMessage().equals("Branch name updated successfully") &&
+                        r.getData().getId().equals("franchise-id"))
+                .verifyComplete();
+
+        verify(updateBranchNameUseCase, times(1)).execute("franchise-id", "branch-id", "Updated Branch Name");
+        verify(franchiseResponseMapper, times(1)).toResponse(updatedFranchise);
+    }
+
+    @Test
+    void updateBranchName_ShouldPropagateErrorWhenBranchNotFound() {
+        UpdateNameRequest nameRequest = UpdateNameRequest.builder()
+                .name("New Name")
+                .build();
+
+        when(updateBranchNameUseCase.execute("franchise-id", "non-existent-branch", "New Name"))
+                .thenReturn(Mono.error(new BranchNotFoundException("Branch not found")));
+
+        var result = franchiseController.updateBranchName("franchise-id", "non-existent-branch", nameRequest);
+
+        StepVerifier.create(result)
+                .expectError(BranchNotFoundException.class)
+                .verify();
+
+        verify(updateBranchNameUseCase, times(1)).execute("franchise-id", "non-existent-branch", "New Name");
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void updateProductName_ShouldReturnSuccessResponse() {
+        Product updatedProduct = Product.builder()
+                .id("product-id")
+                .name("Updated Product Name")
+                .stock(100)
+                .build();
+
+        Branch branch = Branch.builder()
+                .id("branch-id")
+                .name("Test Branch")
+                .products(List.of(updatedProduct))
+                .build();
+
+        Franchise updatedFranchise = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(List.of(branch))
+                .build();
+
+        FranchiseResponse response = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>())
+                .build();
+
+        UpdateNameRequest nameRequest = UpdateNameRequest.builder()
+                .name("Updated Product Name")
+                .build();
+
+        when(updateProductNameUseCase.execute("franchise-id", "branch-id", "product-id", "Updated Product Name"))
+                .thenReturn(Mono.just(updatedFranchise));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(response);
+
+        var result = franchiseController.updateProductName("franchise-id", "branch-id", "product-id", nameRequest);
+
+        StepVerifier.create(result)
+                .expectNextMatches(r ->
+                        r.getStatusCode().equals(200) &&
+                        r.getMessage().equals("Product name updated successfully") &&
+                        r.getData().getId().equals("franchise-id"))
+                .verifyComplete();
+
+        verify(updateProductNameUseCase, times(1)).execute("franchise-id", "branch-id", "product-id", "Updated Product Name");
+        verify(franchiseResponseMapper, times(1)).toResponse(updatedFranchise);
+    }
+
+    @Test
+    void updateProductName_ShouldPropagateErrorWhenProductNotFound() {
+        UpdateNameRequest nameRequest = UpdateNameRequest.builder()
+                .name("New Name")
+                .build();
+
+        when(updateProductNameUseCase.execute("franchise-id", "branch-id", "non-existent-product", "New Name"))
+                .thenReturn(Mono.error(new ProductNotFoundException("Product not found")));
+
+        var result = franchiseController.updateProductName("franchise-id", "branch-id", "non-existent-product", nameRequest);
+
+        StepVerifier.create(result)
+                .expectError(ProductNotFoundException.class)
+                .verify();
+
+        verify(updateProductNameUseCase, times(1)).execute("franchise-id", "branch-id", "non-existent-product", "New Name");
         verify(franchiseResponseMapper, never()).toResponse(any());
     }
 }

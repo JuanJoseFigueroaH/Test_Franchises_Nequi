@@ -5,6 +5,7 @@ import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
 import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
+import com.nequi.franchise.application.dto.UpdateNameRequest;
 import com.nequi.franchise.application.dto.UpdateStockRequest;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
@@ -12,6 +13,9 @@ import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
 import com.nequi.franchise.domain.port.input.GetMaxStockProductsUseCase;
+import com.nequi.franchise.domain.port.input.UpdateBranchNameUseCase;
+import com.nequi.franchise.domain.port.input.UpdateFranchiseNameUseCase;
+import com.nequi.franchise.domain.port.input.UpdateProductNameUseCase;
 import com.nequi.franchise.domain.port.input.UpdateProductStockUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +35,9 @@ public class FranchiseController {
     private final DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
     private final UpdateProductStockUseCase updateProductStockUseCase;
     private final GetMaxStockProductsUseCase getMaxStockProductsUseCase;
+    private final UpdateFranchiseNameUseCase updateFranchiseNameUseCase;
+    private final UpdateBranchNameUseCase updateBranchNameUseCase;
+    private final UpdateProductNameUseCase updateProductNameUseCase;
     private final FranchiseResponseMapper franchiseResponseMapper;
 
     public FranchiseController(
@@ -40,6 +47,9 @@ public class FranchiseController {
             DeleteProductFromBranchUseCase deleteProductFromBranchUseCase,
             UpdateProductStockUseCase updateProductStockUseCase,
             GetMaxStockProductsUseCase getMaxStockProductsUseCase,
+            UpdateFranchiseNameUseCase updateFranchiseNameUseCase,
+            UpdateBranchNameUseCase updateBranchNameUseCase,
+            UpdateProductNameUseCase updateProductNameUseCase,
             FranchiseResponseMapper franchiseResponseMapper) {
         this.createFranchiseUseCase = createFranchiseUseCase;
         this.addBranchToFranchiseUseCase = addBranchToFranchiseUseCase;
@@ -47,6 +57,9 @@ public class FranchiseController {
         this.deleteProductFromBranchUseCase = deleteProductFromBranchUseCase;
         this.updateProductStockUseCase = updateProductStockUseCase;
         this.getMaxStockProductsUseCase = getMaxStockProductsUseCase;
+        this.updateFranchiseNameUseCase = updateFranchiseNameUseCase;
+        this.updateBranchNameUseCase = updateBranchNameUseCase;
+        this.updateProductNameUseCase = updateProductNameUseCase;
         this.franchiseResponseMapper = franchiseResponseMapper;
     }
 
@@ -114,5 +127,41 @@ public class FranchiseController {
         return getMaxStockProductsUseCase.execute(franchiseId)
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.success(response, "Max stock products retrieved successfully"));
+    }
+
+    @PatchMapping("/{franchiseId}/name")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Update franchise name", description = "Updates the name of a franchise")
+    public Mono<ApiResponse<FranchiseResponse>> updateFranchiseName(
+            @PathVariable String franchiseId,
+            @Valid @RequestBody UpdateNameRequest request) {
+        return updateFranchiseNameUseCase.execute(franchiseId, request.getName())
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.success(response, "Franchise name updated successfully"));
+    }
+
+    @PatchMapping("/{franchiseId}/branches/{branchId}/name")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Update branch name", description = "Updates the name of a branch")
+    public Mono<ApiResponse<FranchiseResponse>> updateBranchName(
+            @PathVariable String franchiseId,
+            @PathVariable String branchId,
+            @Valid @RequestBody UpdateNameRequest request) {
+        return updateBranchNameUseCase.execute(franchiseId, branchId, request.getName())
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.success(response, "Branch name updated successfully"));
+    }
+
+    @PatchMapping("/{franchiseId}/branches/{branchId}/products/{productId}/name")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Update product name", description = "Updates the name of a product")
+    public Mono<ApiResponse<FranchiseResponse>> updateProductName(
+            @PathVariable String franchiseId,
+            @PathVariable String branchId,
+            @PathVariable String productId,
+            @Valid @RequestBody UpdateNameRequest request) {
+        return updateProductNameUseCase.execute(franchiseId, branchId, productId, request.getName())
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.success(response, "Product name updated successfully"));
     }
 }
