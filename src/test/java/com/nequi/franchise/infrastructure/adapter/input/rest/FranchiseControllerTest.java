@@ -16,6 +16,7 @@ import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
+import com.nequi.franchise.domain.port.input.GetMaxStockProductsUseCase;
 import com.nequi.franchise.domain.port.input.UpdateProductStockUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class FranchiseControllerTest {
 
     @Mock
     private UpdateProductStockUseCase updateProductStockUseCase;
+
+    @Mock
+    private GetMaxStockProductsUseCase getMaxStockProductsUseCase;
 
     @Mock
     private FranchiseResponseMapper franchiseResponseMapper;
@@ -443,6 +447,76 @@ class FranchiseControllerTest {
                 .verify();
 
         verify(updateProductStockUseCase, times(1)).execute("franchise-id", "branch-id", "non-existent-product", 200);
+        verify(franchiseResponseMapper, never()).toResponse(any());
+    }
+
+    @Test
+    void getMaxStockProducts_ShouldReturnSuccessResponse() {
+        Product maxProduct1 = Product.builder()
+                .id("product-1")
+                .name("Max Product 1")
+                .stock(100)
+                .build();
+
+        Product maxProduct2 = Product.builder()
+                .id("product-2")
+                .name("Max Product 2")
+                .stock(150)
+                .build();
+
+        Branch branch1 = Branch.builder()
+                .id("branch-1")
+                .name("Branch 1")
+                .products(List.of(maxProduct1))
+                .build();
+
+        Branch branch2 = Branch.builder()
+                .id("branch-2")
+                .name("Branch 2")
+                .products(List.of(maxProduct2))
+                .build();
+
+        Franchise franchiseWithMaxProducts = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(List.of(branch1, branch2))
+                .build();
+
+        FranchiseResponse responseWithMaxProducts = FranchiseResponse.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>())
+                .build();
+
+        when(getMaxStockProductsUseCase.execute("franchise-id"))
+                .thenReturn(Mono.just(franchiseWithMaxProducts));
+        when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(responseWithMaxProducts);
+
+        var result = franchiseController.getMaxStockProducts("franchise-id");
+
+        StepVerifier.create(result)
+                .expectNextMatches(response ->
+                        response.getStatusCode().equals(200) &&
+                        response.getMessage().equals("Max stock products retrieved successfully") &&
+                        response.getData().getId().equals("franchise-id"))
+                .verifyComplete();
+
+        verify(getMaxStockProductsUseCase, times(1)).execute("franchise-id");
+        verify(franchiseResponseMapper, times(1)).toResponse(franchiseWithMaxProducts);
+    }
+
+    @Test
+    void getMaxStockProducts_ShouldPropagateErrorWhenFranchiseNotFound() {
+        when(getMaxStockProductsUseCase.execute("non-existent-id"))
+                .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
+
+        var result = franchiseController.getMaxStockProducts("non-existent-id");
+
+        StepVerifier.create(result)
+                .expectError(FranchiseNotFoundException.class)
+                .verify();
+
+        verify(getMaxStockProductsUseCase, times(1)).execute("non-existent-id");
         verify(franchiseResponseMapper, never()).toResponse(any());
     }
 }

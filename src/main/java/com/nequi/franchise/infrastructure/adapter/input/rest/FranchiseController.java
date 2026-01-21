@@ -11,6 +11,7 @@ import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
+import com.nequi.franchise.domain.port.input.GetMaxStockProductsUseCase;
 import com.nequi.franchise.domain.port.input.UpdateProductStockUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +30,7 @@ public class FranchiseController {
     private final AddProductToBranchUseCase addProductToBranchUseCase;
     private final DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
     private final UpdateProductStockUseCase updateProductStockUseCase;
+    private final GetMaxStockProductsUseCase getMaxStockProductsUseCase;
     private final FranchiseResponseMapper franchiseResponseMapper;
 
     public FranchiseController(
@@ -37,12 +39,14 @@ public class FranchiseController {
             AddProductToBranchUseCase addProductToBranchUseCase,
             DeleteProductFromBranchUseCase deleteProductFromBranchUseCase,
             UpdateProductStockUseCase updateProductStockUseCase,
+            GetMaxStockProductsUseCase getMaxStockProductsUseCase,
             FranchiseResponseMapper franchiseResponseMapper) {
         this.createFranchiseUseCase = createFranchiseUseCase;
         this.addBranchToFranchiseUseCase = addBranchToFranchiseUseCase;
         this.addProductToBranchUseCase = addProductToBranchUseCase;
         this.deleteProductFromBranchUseCase = deleteProductFromBranchUseCase;
         this.updateProductStockUseCase = updateProductStockUseCase;
+        this.getMaxStockProductsUseCase = getMaxStockProductsUseCase;
         this.franchiseResponseMapper = franchiseResponseMapper;
     }
 
@@ -101,5 +105,14 @@ public class FranchiseController {
         return updateProductStockUseCase.execute(franchiseId, branchId, productId, request.getStock())
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.success(response, "Product stock updated successfully"));
+    }
+
+    @GetMapping("/{franchiseId}/max-stock-products")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get products with maximum stock per branch", description = "Returns the product with the highest stock for each branch in the franchise")
+    public Mono<ApiResponse<FranchiseResponse>> getMaxStockProducts(@PathVariable String franchiseId) {
+        return getMaxStockProductsUseCase.execute(franchiseId)
+                .map(franchiseResponseMapper::toResponse)
+                .map(response -> ApiResponse.success(response, "Max stock products retrieved successfully"));
     }
 }
