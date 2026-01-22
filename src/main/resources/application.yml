@@ -27,8 +27,14 @@ logging:
   level:
     com.nequi.franchise: INFO
     org.springframework.web: INFO
+    io.micrometer.tracing: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId:-}] [%X{traceId:-}] [%X{spanId:-}] [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId:-}] [%X{traceId:-}] [%X{spanId:-}] [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/franchise-api.log
+    max-size: 10MB
+    max-history: 30
 
 springdoc:
   api-docs:
@@ -41,10 +47,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,httptrace
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
     metrics:
       enabled: true
     prometheus:
@@ -55,3 +63,15 @@ management:
         enabled: true
     tags:
       application: ${spring.application.name}
+      environment: ${ENVIRONMENT:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
