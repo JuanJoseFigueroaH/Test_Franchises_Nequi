@@ -150,6 +150,7 @@ class FranchiseControllerTest {
                 .build();
 
         CreateBranchRequest branchRequest = CreateBranchRequest.builder()
+                .franchiseId("franchise-id")
                 .name("Test Branch")
                 .build();
 
@@ -157,7 +158,7 @@ class FranchiseControllerTest {
                 .thenReturn(Mono.just(franchiseWithBranch));
         when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(responseWithBranch);
 
-        var result = franchiseController.addBranchToFranchise("franchise-id", branchRequest);
+        var result = franchiseController.addBranchToFranchise(branchRequest);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
@@ -173,13 +174,14 @@ class FranchiseControllerTest {
     @Test
     void addBranchToFranchise_ShouldPropagateErrorWhenFranchiseNotFound() {
         CreateBranchRequest branchRequest = CreateBranchRequest.builder()
+                .franchiseId("non-existent-id")
                 .name("Test Branch")
                 .build();
 
         when(addBranchToFranchiseUseCase.execute("non-existent-id", "Test Branch"))
                 .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
 
-        var result = franchiseController.addBranchToFranchise("non-existent-id", branchRequest);
+        var result = franchiseController.addBranchToFranchise(branchRequest);
 
         StepVerifier.create(result)
                 .expectError(FranchiseNotFoundException.class)
@@ -216,6 +218,8 @@ class FranchiseControllerTest {
                 .build();
 
         CreateProductRequest productRequest = CreateProductRequest.builder()
+                .franchiseId("franchise-id")
+                .branchId("branch-id")
                 .name("Test Product")
                 .stock(100)
                 .build();
@@ -224,7 +228,7 @@ class FranchiseControllerTest {
                 .thenReturn(Mono.just(franchiseWithProduct));
         when(franchiseResponseMapper.toResponse(any(Franchise.class))).thenReturn(responseWithProduct);
 
-        var result = franchiseController.addProductToBranch("franchise-id", "branch-id", productRequest);
+        var result = franchiseController.addProductToBranch(productRequest);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
@@ -240,6 +244,8 @@ class FranchiseControllerTest {
     @Test
     void addProductToBranch_ShouldPropagateErrorWhenFranchiseNotFound() {
         CreateProductRequest productRequest = CreateProductRequest.builder()
+                .franchiseId("non-existent-id")
+                .branchId("branch-id")
                 .name("Test Product")
                 .stock(100)
                 .build();
@@ -247,7 +253,7 @@ class FranchiseControllerTest {
         when(addProductToBranchUseCase.execute("non-existent-id", "branch-id", "Test Product", 100))
                 .thenReturn(Mono.error(new FranchiseNotFoundException("Franchise not found")));
 
-        var result = franchiseController.addProductToBranch("non-existent-id", "branch-id", productRequest);
+        var result = franchiseController.addProductToBranch(productRequest);
 
         StepVerifier.create(result)
                 .expectError(FranchiseNotFoundException.class)
@@ -260,6 +266,8 @@ class FranchiseControllerTest {
     @Test
     void addProductToBranch_ShouldPropagateErrorWhenBranchNotFound() {
         CreateProductRequest productRequest = CreateProductRequest.builder()
+                .franchiseId("franchise-id")
+                .branchId("non-existent-branch")
                 .name("Test Product")
                 .stock(100)
                 .build();
@@ -267,7 +275,7 @@ class FranchiseControllerTest {
         when(addProductToBranchUseCase.execute("franchise-id", "non-existent-branch", "Test Product", 100))
                 .thenReturn(Mono.error(new BranchNotFoundException("Branch not found")));
 
-        var result = franchiseController.addProductToBranch("franchise-id", "non-existent-branch", productRequest);
+        var result = franchiseController.addProductToBranch(productRequest);
 
         StepVerifier.create(result)
                 .expectError(BranchNotFoundException.class)

@@ -120,11 +120,21 @@ public class Branch {
     }
 
     public static class BranchBuilder {
+        private List<Product> products$value;
+        private boolean products$set;
+
+        public BranchBuilder products(List<Product> products) {
+            this.products$value = products;
+            this.products$set = true;
+            return this;
+        }
+
         public Branch build() {
-            if (products == null) {
-                products = new ArrayList<>();
+            List<Product> productsValue = this.products$set ? this.products$value : new ArrayList<>();
+            if (productsValue == null) {
+                productsValue = new ArrayList<>();
             }
-            Branch branch = new Branch(id, name, products);
+            Branch branch = new Branch(id, name, productsValue);
             branch.validateName(name);
             return branch;
         }

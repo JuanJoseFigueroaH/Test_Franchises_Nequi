@@ -11,6 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateBranchRequest {
+    @NotBlank(message = "Franchise ID is required")
+    private String franchiseId;
+
     @NotBlank(message = "Name is required")
     private String name;
 }

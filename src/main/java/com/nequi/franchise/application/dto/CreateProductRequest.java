@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateProductRequest {
+    @NotBlank(message = "Franchise ID is required")
+    private String franchiseId;
+
+    @NotBlank(message = "Branch ID is required")
+    private String branchId;
+
     @NotBlank(message = "Name is required")
     private String name;
 

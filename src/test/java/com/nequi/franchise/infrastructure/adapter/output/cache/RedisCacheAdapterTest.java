@@ -1,5 +1,9 @@
 package com.nequi.franchise.infrastructure.adapter.output.cache;
 
+import com.nequi.franchise.infrastructure.config.CacheMetrics;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,12 +28,22 @@ class RedisCacheAdapterTest {
     @Mock
     private ReactiveValueOperations<String, Object> valueOperations;
 
+    @Mock
+    private CacheMetrics cacheMetrics;
+
+    @Mock
+    private Timer.Sample timerSample;
+
+    private CircuitBreaker circuitBreaker;
+
     private RedisCacheAdapter cacheAdapter;
 
     @BeforeEach
     void setUp() {
+        circuitBreaker = CircuitBreaker.of("testCircuitBreaker", CircuitBreakerConfig.ofDefaults());
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        cacheAdapter = new RedisCacheAdapter(redisTemplate);
+        when(cacheMetrics.startTimer()).thenReturn(timerSample);
+        cacheAdapter = new RedisCacheAdapter(redisTemplate, circuitBreaker, cacheMetrics);
     }
 
     @Test

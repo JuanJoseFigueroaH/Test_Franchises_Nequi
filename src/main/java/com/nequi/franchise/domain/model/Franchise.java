@@ -151,14 +151,30 @@ public class Franchise {
     }
 
     public static class FranchiseBuilder {
+        private List<Branch> branches$value;
+        private boolean branches$set;
+        private Long version$value;
+        private boolean version$set;
+
+        public FranchiseBuilder branches(List<Branch> branches) {
+            this.branches$value = branches;
+            this.branches$set = true;
+            return this;
+        }
+
+        public FranchiseBuilder version(Long version) {
+            this.version$value = version;
+            this.version$set = true;
+            return this;
+        }
+
         public Franchise build() {
-            if (branches == null) {
-                branches = new ArrayList<>();
+            List<Branch> branchesValue = this.branches$set ? this.branches$value : new ArrayList<>();
+            Long versionValue = this.version$set ? this.version$value : 0L;
+            if (branchesValue == null) {
+                branchesValue = new ArrayList<>();
             }
-            if (version == null) {
-                version = 0L;
-            }
-            Franchise franchise = new Franchise(id, name, branches, version);
+            Franchise franchise = new Franchise(id, name, branchesValue, versionValue);
             franchise.validateName(name);
             return franchise;
         }

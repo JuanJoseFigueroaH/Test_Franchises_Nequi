@@ -1,12 +1,11 @@
 package com.nequi.franchise.infrastructure.observability;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.ReactiveHealthIndicator;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 
 import java.time.Duration;
@@ -14,12 +13,12 @@ import java.time.Duration;
 @Component("dynamodb")
 public class DynamoDBHealthIndicator implements ReactiveHealthIndicator {
 
-    private final DynamoDbEnhancedAsyncClient dynamoDbClient;
+    private final DynamoDbAsyncClient dynamoDbClient;
     private final String tableName;
 
     public DynamoDBHealthIndicator(
-            DynamoDbEnhancedAsyncClient dynamoDbClient,
-            org.springframework.beans.factory.annotation.Value("${aws.dynamodb.table-name}") String tableName) {
+            DynamoDbAsyncClient dynamoDbClient,
+            @Value("${aws.dynamodb.table-name}") String tableName) {
         this.dynamoDbClient = dynamoDbClient;
         this.tableName = tableName;
     }
@@ -39,8 +38,7 @@ public class DynamoDBHealthIndicator implements ReactiveHealthIndicator {
 
     private Mono<Health> checkDynamoDBHealth() {
         return Mono.fromFuture(
-                dynamoDbClient.dynamoDbClient()
-                    .describeTable(DescribeTableRequest.builder()
+                dynamoDbClient.describeTable(DescribeTableRequest.builder()
                         .tableName(tableName)
                         .build())
             )

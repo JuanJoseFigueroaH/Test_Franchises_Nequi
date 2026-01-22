@@ -244,7 +244,16 @@ class UpdateProductStockServiceTest {
                 .stock(100)
                 .build();
 
-        existingBranch.setProducts(new ArrayList<>(List.of(product1, product2)));
+        existingBranch = Branch.builder()
+                .id("branch-id")
+                .name("Test Branch")
+                .products(new ArrayList<>(List.of(product1, product2)))
+                .build();
+        existingFranchise = Franchise.builder()
+                .id("franchise-id")
+                .name("Test Franchise")
+                .branches(new ArrayList<>(List.of(existingBranch)))
+                .build();
 
         Product updatedProduct1 = Product.builder()
                 .id("product-1")

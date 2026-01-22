@@ -92,25 +92,22 @@ public class FranchiseController {
                 .map(response -> ApiResponse.created(response, "Franchise created successfully"));
     }
 
-    @PostMapping("/{franchiseId}/branches")
+    @PostMapping("/branches")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Add a new branch to a franchise", description = "Adds a new branch to an existing franchise")
     public Mono<ApiResponse<FranchiseResponse>> addBranchToFranchise(
-            @PathVariable String franchiseId,
             @Valid @RequestBody CreateBranchRequest request) {
-        return addBranchToFranchiseUseCase.execute(franchiseId, request.getName())
+        return addBranchToFranchiseUseCase.execute(request.getFranchiseId(), request.getName())
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.created(response, "Branch added successfully to franchise"));
     }
 
-    @PostMapping("/{franchiseId}/branches/{branchId}/products")
+    @PostMapping("/branches/products")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Add a new product to a branch", description = "Adds a new product to an existing branch")
     public Mono<ApiResponse<FranchiseResponse>> addProductToBranch(
-            @PathVariable String franchiseId,
-            @PathVariable String branchId,
             @Valid @RequestBody CreateProductRequest request) {
-        return addProductToBranchUseCase.execute(franchiseId, branchId, request.getName(), request.getStock())
+        return addProductToBranchUseCase.execute(request.getFranchiseId(), request.getBranchId(), request.getName(), request.getStock())
                 .map(franchiseResponseMapper::toResponse)
                 .map(response -> ApiResponse.created(response, "Product added successfully to branch"));
     }

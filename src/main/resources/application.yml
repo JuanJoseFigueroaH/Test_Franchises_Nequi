@@ -14,7 +14,7 @@ spring:
 
 aws:
   dynamodb:
-    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:8000}
+    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:8005}
     region: ${AWS_REGION:us-east-1}
     access-key: ${AWS_ACCESS_KEY:local}
     secret-key: ${AWS_SECRET_KEY:local}
