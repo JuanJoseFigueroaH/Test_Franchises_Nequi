@@ -5,14 +5,17 @@ import com.nequi.franchise.application.dto.CreateBranchRequest;
 import com.nequi.franchise.application.dto.CreateFranchiseRequest;
 import com.nequi.franchise.application.dto.CreateProductRequest;
 import com.nequi.franchise.application.dto.FranchiseResponse;
+import com.nequi.franchise.application.dto.PageResponse;
 import com.nequi.franchise.application.dto.UpdateNameRequest;
 import com.nequi.franchise.application.dto.UpdateStockRequest;
 import com.nequi.franchise.application.mapper.FranchiseResponseMapper;
+import com.nequi.franchise.application.mapper.PageResponseMapper;
 import com.nequi.franchise.domain.port.input.AddBranchToFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.AddProductToBranchUseCase;
 import com.nequi.franchise.domain.port.input.CreateFranchiseUseCase;
 import com.nequi.franchise.domain.port.input.DeleteProductFromBranchUseCase;
 import com.nequi.franchise.domain.port.input.GetMaxStockProductsUseCase;
+import com.nequi.franchise.domain.port.input.ListFranchisesUseCase;
 import com.nequi.franchise.domain.port.input.UpdateBranchNameUseCase;
 import com.nequi.franchise.domain.port.input.UpdateFranchiseNameUseCase;
 import com.nequi.franchise.domain.port.input.UpdateProductNameUseCase;
@@ -35,10 +38,12 @@ public class FranchiseController {
     private final DeleteProductFromBranchUseCase deleteProductFromBranchUseCase;
     private final UpdateProductStockUseCase updateProductStockUseCase;
     private final GetMaxStockProductsUseCase getMaxStockProductsUseCase;
+    private final ListFranchisesUseCase listFranchisesUseCase;
     private final UpdateFranchiseNameUseCase updateFranchiseNameUseCase;
     private final UpdateBranchNameUseCase updateBranchNameUseCase;
     private final UpdateProductNameUseCase updateProductNameUseCase;
     private final FranchiseResponseMapper franchiseResponseMapper;
+    private final PageResponseMapper pageResponseMapper;
 
     public FranchiseController(
             CreateFranchiseUseCase createFranchiseUseCase,
@@ -47,20 +52,35 @@ public class FranchiseController {
             DeleteProductFromBranchUseCase deleteProductFromBranchUseCase,
             UpdateProductStockUseCase updateProductStockUseCase,
             GetMaxStockProductsUseCase getMaxStockProductsUseCase,
+            ListFranchisesUseCase listFranchisesUseCase,
             UpdateFranchiseNameUseCase updateFranchiseNameUseCase,
             UpdateBranchNameUseCase updateBranchNameUseCase,
             UpdateProductNameUseCase updateProductNameUseCase,
-            FranchiseResponseMapper franchiseResponseMapper) {
+            FranchiseResponseMapper franchiseResponseMapper,
+            PageResponseMapper pageResponseMapper) {
         this.createFranchiseUseCase = createFranchiseUseCase;
         this.addBranchToFranchiseUseCase = addBranchToFranchiseUseCase;
         this.addProductToBranchUseCase = addProductToBranchUseCase;
         this.deleteProductFromBranchUseCase = deleteProductFromBranchUseCase;
         this.updateProductStockUseCase = updateProductStockUseCase;
         this.getMaxStockProductsUseCase = getMaxStockProductsUseCase;
+        this.listFranchisesUseCase = listFranchisesUseCase;
         this.updateFranchiseNameUseCase = updateFranchiseNameUseCase;
         this.updateBranchNameUseCase = updateBranchNameUseCase;
         this.updateProductNameUseCase = updateProductNameUseCase;
         this.franchiseResponseMapper = franchiseResponseMapper;
+        this.pageResponseMapper = pageResponseMapper;
+    }
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "List all franchises with pagination", description = "Returns a paginated list of franchises with cursor-based navigation")
+    public Mono<ApiResponse<PageResponse<FranchiseResponse>>> listFranchises(
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize,
+            @RequestParam(required = false) String cursor) {
+        return listFranchisesUseCase.execute(pageSize, cursor)
+                .map(pageResponseMapper::toPageResponse)
+                .map(response -> ApiResponse.success(response, "Franchises retrieved successfully"));
     }
 
     @PostMapping
