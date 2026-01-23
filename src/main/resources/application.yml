@@ -70,8 +70,6 @@ management:
       slo:
         http.server.requests: 50ms,100ms,200ms,500ms,1s
   tracing:
+    enabled: ${TRACING_ENABLED:false}
     sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+      probability: ${TRACING_PROBABILITY:0.0}
